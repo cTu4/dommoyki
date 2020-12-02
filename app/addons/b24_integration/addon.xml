@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<addon scheme="3.0">
+    <id>b24_integration</id>
+    <version>1.0</version>
+    <priority>2800</priority>
+    <position>100</position>
+    <status>active</status>
+    <dependencies/>
+    <default_language>ru</default_language>
+    <auto_install>MULTIVENDOR,ULTIMATE</auto_install>
+    <queries>
+        <item for="install" >
+            ALTER TABLE `?:products`
+            ADD `XML_ID` varchar(50)
+        </item>
+        <item for="uninstall" >
+            ALTER TABLE `?:products`
+            DROP `XML_ID`
+        </item>
+
+
+        <item for="install" >
+            ALTER TABLE `?:categories`
+            ADD `XML_ID` varchar(50)
+        </item>
+        <item for="uninstall" >
+            ALTER TABLE `?:categories`
+            DROP `XML_ID`
+        </item>
+
+
+        <item for="install" >
+            ALTER TABLE `?:product_features`
+            ADD `XML_ID` varchar(50)
+        </item>
+        <item for="uninstall" >
+            ALTER TABLE `?:product_features`
+            DROP `XML_ID`
+        </item>
+
+        <item for="install" >
+            ALTER TABLE `?:product_feature_variants`
+            ADD `XML_ID` varchar(50)
+        </item>
+        <item for="uninstall" >
+            ALTER TABLE `?:product_feature_variants`
+            DROP `XML_ID`
+        </item>
+
+    </queries>
+</addon>
