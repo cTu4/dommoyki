@@ -93,7 +93,7 @@ if ($mode == 'test') {
     }
     unset($list_props);
     $id_product_cs = 31415;
-
+    $data_keys = B24_integration['feature'];
     $data = fn_file_get_contents_curl_call('iderm9n61stccn33', 'crm.product.get', ["id" => $id_product_cs]);
     $test = [];
     $product_features = [];
@@ -131,16 +131,74 @@ if ($mode == 'test') {
 //                fn_update_product_features_value($id_product_cs,);
 
             } else {
+                $prop_for_add = $arProps[$id_prop_bitrix];
+                $arData_feature_cs = [
+                    "description" =>            $prop_for_add[$data_keys['description']],
+                    "company_id" =>                1,
+                    "purpose" =>                "find_products",
+                    "display_on_product" =>     "Y",
+                    "display_on_catalog" =>     "N",
+                    "display_on_header" =>      "N",
+                    "feature_style"=>           "text",
+                    "XML_ID"=>                  $prop_for_add['XML_ID']
 
+                ];
+                echo '<pre>';
+                print_r($prop_for_add);
+                echo '</pre>';
+
+                if($prop_for_add['PROPERTY_TYPE'] === "N"){
+                    $arData_feature_cs["filter_style"] = "slider";
+                    $arData_feature_cs["feature_type"] = "N";
+                }
+                else{
+                    $arData_feature_cs["filter_style"] = "checkbox";
+                    $arData_feature_cs["feature_type"] = "S";
+                }
+                $arVariants = [];
+                if($prop_for_add['PROPERTY_TYPE'] === "L"){
+
+                    foreach ($prop_for_add['VALUES'] as $keyVariant => $variant) {
+
+                        $arVariant = [
+                            "position" =>   $keyVariant,
+                            "color" =>      "#ffffff",
+                            "variant" =>    $variant['VALUE'],
+                            "XML_ID" =>     $variant['XML_ID']
+                        ];
+
+
+                        array_push($arVariants,$arVariant);
+
+                    }
+                    $arData_feature_cs['variants'] = $arVariants;
+//
+                }
+                else{
+                    $arData_feature_cs['variants'] = [
+                        "0" =>
+                            [
+                            "position" =>   1,
+                            "color" =>      "#ffffff",
+                            "variant" =>    $prop['value']
+                            ]
+                    ];
+                    // values null
+                }
+                echo '<pre>';
+                print_r($arData_feature_cs);
+                echo '</pre>';
             }
 
         }
     }
-    fn_update_product_features_value(30,$product_features,$add_new_variant,'ru');
     echo '<pre>';
     print_r($product_features);
     print_r($add_new_variant);
     echo '</pre>';
+    die;
+    fn_update_product_features_value(30,$product_features,$add_new_variant,'ru');
+
 }
 
 
