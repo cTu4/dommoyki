@@ -15,7 +15,11 @@ use Tygh\Registry;
 
 if (!defined('BOOTSTRAP')) { die('Access denied'); }
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    if ($mode == 'delete_product') {
+    if ($mode == 'test_b24') {
+        file_put_contents('request.txt', [87,7,1]);
+    }
+
+        if ($mode == 'delete_product') {
         $id_bitrix = $_REQUEST['data']['FIELDS']['ID'];
         $id_cscart = fn_get_product_id_cscart($id_bitrix);
         fn_delete_product($id_cscart);
@@ -84,6 +88,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     return array(CONTROLLER_STATUS_OK, "products.update");
 }
 
+if ($mode == 'test_b24') {
+    file_put_contents('request.txt', [1,1,1,1]);
+    $list_props = fn_file_get_contents_curl_box('c36kd58i01z1lbgv', 'crm.product.list', []);
+//    $list_props = fn_file_get_contents_curl_call('iderm9n61stccn33', 'crm.product.list', []);
+    echo "<pre>";
+    print_r($list_props);
+    echo "</pre>";
+}
 if ($mode == 'test') {
     //fn_update_product_features_value(13,[12=>99],[12=>["variant" => 99]],DESCR_SL);
     $list_props = fn_file_get_contents_curl_call('iderm9n61stccn33', 'crm.product.property.list', []);
@@ -144,7 +156,7 @@ if ($mode == 'test') {
 
                 ];
                 echo '<pre>';
-                print_r($prop_for_add);
+                print_r(["prop_for_add"=>$prop_for_add]);
                 echo '</pre>';
 
                 if($prop_for_add['PROPERTY_TYPE'] === "N"){
@@ -186,15 +198,15 @@ if ($mode == 'test') {
                     // values null
                 }
                 echo '<pre>';
-                print_r($arData_feature_cs);
+                print_r(["arData_feature_cs" =>$arData_feature_cs]);
                 echo '</pre>';
             }
 
         }
     }
     echo '<pre>';
-    print_r($product_features);
-    print_r($add_new_variant);
+//    print_r($product_features);
+//    print_r($add_new_variant);
     echo '</pre>';
     die;
     fn_update_product_features_value(30,$product_features,$add_new_variant,'ru');
@@ -206,35 +218,52 @@ if ($mode == 'update_features') {
     $data_keys = B24_integration['feature'];
     $features = fn_file_get_contents_curl_call('iderm9n61stccn33','crm.product.property.list',[]);
 
-    foreach ($features as $keyFeature => $feature){
-        echo '<pre>';
-        print_r($feature);
-        echo '</pre>';
+    foreach ($features as $keyFeature => $feature_b24){
         $feature_cscart = [
-            "description" =>            $feature[$data_keys['description']],
+            "description" =>            $feature_b24[$data_keys['description']],
             "company_id" =>                1,
             "purpose" =>                "find_products",
-            "feature_style"=>           "text",
-            "filter_style" =>           "checkbox",
-            "feature_type" =>           "S",
             "display_on_product" =>     "Y",
             "display_on_catalog" =>     "N",
             "display_on_header" =>      "N",
-            "XML_ID"=>                  $feature['XML_ID']
+            "feature_style"=>           "text",
+            "XML_ID"=>                  $feature_b24['XML_ID']
+
         ];
-        $feature_id = fn_update_product_feature($feature_cscart, 0, 'ru');
-        if(!empty($feature['VALUES'])){
+//        echo '<pre>';
+//        print_r(["prop_for_add"=>$feature_b24]);
+//        echo '</pre>';
+
+        if($feature_b24['PROPERTY_TYPE'] === "N"){
+            $feature_cscart["filter_style"] = "slider";
+            $feature_cscart["feature_type"] = "N";
+        }
+        else{
+            $feature_cscart["filter_style"] = "checkbox";
+            $feature_cscart["feature_type"] = "S";
+        }
+        if(!empty($feature_b24['VALUES'])){
+            $feature_cscart['variants'] = [];
             $position = 1;
-            foreach ($feature['VALUES'] as $variant){
+            foreach ($feature_b24['VALUES'] as $variant){
                 $variant_cscart = [
                     "variant" => $variant['VALUE'],
                     "position" => $position,
                     "XML_ID" => $variant['XML_ID']
                 ];
-                fn_add_feature_variant($feature_id,$variant_cscart);
+                array_push($feature_cscart['variants'],$variant_cscart);
+                //fn_add_feature_variant($feature_id,$variant_cscart);
                 $position++;
             }
         }
+
+
+        $id_feature_cscart = db_get_field("select feature_id from ?:product_features where XML_ID=?s", $feature_b24["XML_ID"]);
+        echo '<pre>';
+        print_r($feature_cscart);
+        echo '</pre>';
+        $feature_id = fn_update_product_feature($feature_cscart, $id_feature_cscart?$id_feature_cscart:0, 'ru');
+
 
     }
 
@@ -249,9 +278,9 @@ if ($mode == 'update_categories') {
     foreach ($categories as $key => $category){
         fn_change_key($key,$category['ID'],$categories);
     }
+
     foreach ($categories as $key => $category){
         $category_cscart = db_get_field("SELECT category_id FROM ?:categories WHERE XML_ID = ?s", $category['XML_ID']);
-        if(empty($category_cscart)){
             $id_parent = 0;
             if(!empty($category['SECTION_ID'])){
 //            $params = [
@@ -271,26 +300,272 @@ if ($mode == 'update_categories') {
                 "product_details_view" => 'default',
                 "timestamp" => date('d/m/y')
             ];
+            $id_category = db_get_field("select category_id from ?:categories where XML_ID=?s", $category["XML_ID"]);
 
-            $id_category = fn_update_category($category_cscart,0, "ru");
+            $id_category = fn_update_category($category_cscart,$id_category?$id_category:0, "ru");
             echo '<pre>';
-            print_r(db_get_row("select * FROM ?:categories WHERE category_id = ?i",$id_category));
+            print_r($id_category?$id_category:0);
+            //print_r(db_get_row("select * FROM ?:categories WHERE category_id = ?i",$id_category));
             echo '</pre>';
-        }
 
     }
-
 die;
 }
 
-if ($mode == 'update_prop') {
-    $properties = fn_file_get_contents_curl_call('iderm9n61stccn33','crm.product.property.list',[]);
-    foreach ($properties as $prop){
+if ($mode == 'full_update') {
+//    update categories
+    $categories = fn_file_get_contents_curl_call('iderm9n61stccn33','crm.productsection.list',[]);
+    foreach ($categories as $key => $category){
+        fn_change_key($key,$category['ID'],$categories);
+    }
+
+    foreach ($categories as $key => $category){
+        $category_cscart = db_get_field("SELECT category_id FROM ?:categories WHERE XML_ID = ?s", $category['XML_ID']);
+        $id_parent = 0;
+        if(!empty($category['SECTION_ID'])){
+//            $params = [
+//                "select" => ["XML_ID"],
+//                "filter"=>[
+//                    "SECTION_ID" => $category['SECTION_ID']
+//                ]
+//            ];
+//            $parent_XML_ID = fn_file_get_contents_curl_call('iderm9n61stccn33','crm.productsection.list',$params)[0]["XML_ID"];
+            $parent_XML_ID = $categories[$category['SECTION_ID']]['XML_ID'];
+            $id_parent = db_get_field("SELECT category_id FROM ?:categories WHERE XML_ID = ?s", $parent_XML_ID);
+        }
+        $category_cscart = [
+            "category" => $category['NAME'],
+            "XML_ID" => $category['XML_ID'],
+            "parent_id" => $id_parent,
+            "product_details_view" => 'default',
+            "timestamp" => date('d/m/y')
+        ];
+        $id_category = db_get_field("select category_id from ?:categories where XML_ID=?s", $category["XML_ID"]);
+
+        $id_category = fn_update_category($category_cscart,$id_category?$id_category:0, "ru");
+        echo '<pre>';
+        print_r($id_category?$id_category:0);
+        //print_r(db_get_row("select * FROM ?:categories WHERE category_id = ?i",$id_category));
+        echo '</pre>';
 
     }
-    echo '<pre>';
-    print_r($properties);
-    echo '</pre>';
+//  end  update categories
+
+//    update properties
+    $data_keys = B24_integration['feature'];
+    $features = fn_file_get_contents_curl_call('iderm9n61stccn33','crm.product.property.list',[]);
+    foreach ($features as $keyFeature => $feature_b24){
+        $feature_cscart = [
+            "description" =>            $feature_b24[$data_keys['description']],
+            "company_id" =>                1,
+            "purpose" =>                "find_products",
+            "display_on_product" =>     "Y",
+            "display_on_catalog" =>     "N",
+            "display_on_header" =>      "N",
+            "feature_style"=>           "text",
+            "XML_ID"=>                  $feature_b24['XML_ID']
+
+        ];
+        if($feature_b24['PROPERTY_TYPE'] === "N"){
+            $feature_cscart["filter_style"] = "slider";
+            $feature_cscart["feature_type"] = "N";
+        }
+        else{
+            $feature_cscart["filter_style"] = "checkbox";
+            $feature_cscart["feature_type"] = "S";
+        }
+        if(!empty($feature_b24['VALUES'])){
+            $feature_cscart['variants'] = [];
+            $position = 1;
+            foreach ($feature_b24['VALUES'] as $variant){
+                $variant_cscart = [
+                    "variant" => $variant['VALUE'],
+                    "position" => $position,
+                    "XML_ID" => $variant['XML_ID']
+                ];
+                array_push($feature_cscart['variants'],$variant_cscart);
+                //fn_add_feature_variant($feature_id,$variant_cscart);
+                $position++;
+            }
+        }
+        $id_feature_cscart = db_get_field("select feature_id from ?:product_features where XML_ID=?s", $feature_b24["XML_ID"]);
+        $feature_id = fn_update_product_feature($feature_cscart, $id_feature_cscart?$id_feature_cscart:0, 'ru');
+    }
+//   end update properties
+
+    //        update product
+    $list_props = fn_file_get_contents_curl_call('iderm9n61stccn33', 'crm.product.property.list', []);
+    $arProps = [];
+    foreach ($list_props as $prop) {
+        $arProps[$prop["ID"]] = $prop;
+    }
+
+    unset($list_props);
+    $params=[
+        "select"=>["ID"]
+    ];
+    $products_ids = fn_file_get_contents_curl_call('iderm9n61stccn33','crm.product.list',$params);
+    $params=[
+        "select" => ["ID"],
+        "filter" => [
+            "NAME"=>"Витрины"
+        ]
+    ];
+    $sale_destination = fn_file_get_contents_curl_call('iderm9n61stccn33','crm.product.property.list',$params)[0];
+
+    foreach ($products_ids as $keyProduct => $id_product){
+        $data_keys = B24_integration['product'];
+
+        $data = fn_get_product_data_bitrix($id_product["ID"]);
+
+        // $b24_product_destinations = $data['PROPERTY_'.$sale_destination['ID']];
+
+        if(!empty($data['PROPERTY_'.$sale_destination['ID']]))
+        {
+            $check_destination = false;
+            $key = 0;
+
+            foreach ($data['PROPERTY_'.$sale_destination['ID']] as $variant) {
+                $id_variant = $variant['value'];
+                if($sale_destination['VALUES'][$id_variant]['XML_ID'] == 'DOMMOYKI' || $sale_destination['VALUES'][$id_variant]['XML_ID'] == 'ALL'){
+                    $check_destination = true;
+                }
+            }
+            if($check_destination && !empty($data['SECTION_ID']))
+            {
+
+                $bitrix_category_id = $data['SECTION_ID'];
+                $bitrix_product_id =  $data['XML_ID'];
+                $XML_ID_CATEGORY = fn_file_get_contents_curl_call('iderm9n61stccn33','crm.productsection.get',["id"=>$bitrix_category_id])['XML_ID'];
+
+                $category_id_cscart = fn_get_category_id_cscart($XML_ID_CATEGORY);
+
+                $product_id_cscart = fn_get_product_id_cscart($data['XML_ID']);
+
+                $product_data_cscart = [
+                    "product"=>$data[$data_keys['product']],
+                    "category_ids"=>[$category_id_cscart],
+                    "price"=>$data[$data_keys['price']],
+                    "status"=>$data[$data_keys['status']]==='Y'?'A':'D',
+                    "full_description"=>$data[$data_keys['full_description']],
+                    "timestamp"=>$data[$data_keys['timestamp']],
+                    "XML_ID"=>$data[$data_keys['XML_ID']],
+                    "company_id"=>'3'
+                ];
+                $product_features = [];
+                $add_new_variant = [];
+                foreach ($data as $key => $prop) {
+                    if (isset($prop) && substr($key, 0, 9) == "PROPERTY_" && $key !== "PROPERTY_" . $sale_destination['ID']) {
+                        $id_prop_bitrix = explode("PROPERTY_", $key)[1];
+                        $id_feature_cscart = db_get_field("select feature_id from ?:product_features where XML_ID=?s", $arProps[$id_prop_bitrix]["XML_ID"]);
+                        if (!empty($id_feature_cscart)) {
+                            $arProp_B24 = $arProps[$id_prop_bitrix];
+                            if ($arProp_B24['PROPERTY_TYPE'] == "S" || $arProp_B24['PROPERTY_TYPE'] == "N") {
+                                $id_varinat_cs = db_get_field("select ?:product_feature_variant_descriptions.variant_id from ?:product_feature_variant_descriptions 
+                    join ?:product_feature_variants 
+                    on ?:product_feature_variant_descriptions.variant_id=?:product_feature_variants.variant_id  
+                    where variant=?s and feature_id=?s", $prop['value'], $id_feature_cscart);
+
+                                if (!empty($id_varinat_cs)) {
+                                    $product_features[$id_feature_cscart] = $id_varinat_cs;
+                                } else {
+                                    $product_features[$id_feature_cscart] = $prop['value'];
+                                    $add_new_variant[$id_feature_cscart]["variant"] = $prop['value'];
+
+                                }
+                            }
+                            if ($arProp_B24['PROPERTY_TYPE'] == "L") {
+                                $XML_ID_VARIANT = $arProp_B24["VALUES"][$prop['value']]["XML_ID"];
+                                $id_varinat_cs = db_get_field("select variant_id from ?:product_feature_variants where XML_ID=?s", $XML_ID_VARIANT);
+
+                                if (!empty($id_varinat_cs)) {
+                                    $product_features[$id_feature_cscart] = $id_varinat_cs;
+                                } else {
+                                    $product_features[$id_feature_cscart] = $arProp_B24["VALUES"][$prop['value']]['VALUE'];
+                                    $add_new_variant[$id_feature_cscart]["variant"] = $arProp_B24["VALUES"][$prop['value']]['VALUE'];
+                                }
+
+//                    $product_features[$id_feature_cscart] = $prop['value'];
+                            }
+//                fn_update_product_features_value($id_product_cs,);
+
+                        } else {
+                            $prop_for_add = $arProps[$id_prop_bitrix];
+                            $arData_feature_cs = [
+                                "description" => $prop_for_add[$data_keys['description']],
+                                "company_id" => 1,
+                                "purpose" => "find_products",
+                                "display_on_product" => "Y",
+                                "display_on_catalog" => "N",
+                                "display_on_header" => "N",
+                                "feature_style" => "text",
+                                "XML_ID" => $prop_for_add['XML_ID']
+
+                            ];
+//                            echo '<pre>';
+//                            print_r(["prop_for_add" => $prop_for_add]);
+//                            echo '</pre>';
+
+                            if ($prop_for_add['PROPERTY_TYPE'] === "N") {
+                                $arData_feature_cs["filter_style"] = "slider";
+                                $arData_feature_cs["feature_type"] = "N";
+                            } else {
+                                $arData_feature_cs["filter_style"] = "checkbox";
+                                $arData_feature_cs["feature_type"] = "S";
+                            }
+                            $arVariants = [];
+                            if ($prop_for_add['PROPERTY_TYPE'] === "L") {
+
+                                foreach ($prop_for_add['VALUES'] as $keyVariant => $variant) {
+
+                                    $arVariant = [
+                                        "position" => $keyVariant,
+                                        "color" => "#ffffff",
+                                        "variant" => $variant['VALUE'],
+                                        "XML_ID" => $variant['XML_ID']
+                                    ];
+
+
+                                    array_push($arVariants, $arVariant);
+
+                                }
+                                $arData_feature_cs['variants'] = $arVariants;
+//
+                            } else {
+                                $arData_feature_cs['variants'] = [
+                                    "0" =>
+                                        [
+                                            "position" => 1,
+                                            "color" => "#ffffff",
+                                            "variant" => $prop['value']
+                                        ]
+                                ];
+                                // values null
+                            }
+//                            echo '<pre>';
+//                            print_r(["arData_feature_cs" => $arData_feature_cs]);
+//                            echo '</pre>';
+                        }
+
+                    }
+                }
+
+                $product_data_cscart['product_features'] = $product_features;
+                $product_data_cscart['add_new_variant'] = $add_new_variant;
+                fn_update_product($product_data_cscart,empty($product_id_cscart) ? 0 :  $product_id_cscart,'ru');
+            }
+
+
+        }
+
+    }
+//       end update product
+
+
+    }
+
+if ($mode == 'update_products') {
+
 }
 
 $view = Registry::get('view');

@@ -14,6 +14,23 @@ function fn_change_key($key,$new_key,&$arr){
     }
     return false;
 }
+function fn_file_get_contents_curl_box($webhook,$method, $params) {
+    $url = 'https://192.168.16.220/rest/1/'.$webhook."/".$method . '?'. http_build_query($params);
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+//    curl_setopt($ch, CURLOPT_POST, 1);
+//    curl_setopt($ch, CURLOPT_POSTFIELDS,
+//        http_build_query($params));
+    curl_setopt($ch, CURLOPT_HEADER, 0);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    $data = curl_exec($ch);
+    curl_close($ch);
+    $data = json_decode($data, true);
+    return $data['result'];
+}
+
 function fn_file_get_contents_curl_call($webhook,$method, $params) {
     $url = 'https://b24-nsn38a.bitrix24.ru/rest/7/'.$webhook."/".$method . '?'. http_build_query($params);
     $ch = curl_init();
