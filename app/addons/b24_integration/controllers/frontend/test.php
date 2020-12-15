@@ -343,10 +343,7 @@ if ($mode == 'full_update') {
         $id_category = db_get_field("select category_id from ?:categories where XML_ID=?s", $category["XML_ID"]);
 
         $id_category = fn_update_category($category_cscart,$id_category?$id_category:0, "ru");
-        echo '<pre>';
-        print_r($id_category?$id_category:0);
-        //print_r(db_get_row("select * FROM ?:categories WHERE category_id = ?i",$id_category));
-        echo '</pre>';
+
 
     }
 //  end  update categories
@@ -363,7 +360,8 @@ if ($mode == 'full_update') {
             "display_on_catalog" =>     "N",
             "display_on_header" =>      "N",
             "feature_style"=>           "text",
-            "XML_ID"=>                  $feature_b24['XML_ID']
+            "XML_ID"=>                  $feature_b24['XML_ID'],
+            "categories_path" => "80"
 
         ];
         if($feature_b24['PROPERTY_TYPE'] === "N"){
@@ -405,6 +403,7 @@ if ($mode == 'full_update') {
         "select"=>["ID"]
     ];
     $products_ids = fn_file_get_contents_curl_call('iderm9n61stccn33','crm.product.list',$params);
+
     $params=[
         "select" => ["ID"],
         "filter" => [
